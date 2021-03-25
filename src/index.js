@@ -161,7 +161,7 @@ function $event(code, childNodes) {
 //#region 2. Type definitions
 
 /**
- * @typedef {boolean|number|string|null|undefined|symbol} Primitive
+ * @typedef {boolean|number|string|symbol|null|undefined} Primitive
  */
 
 /**

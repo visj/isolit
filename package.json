@@ -9,12 +9,16 @@
   "files": [
     "lib.d.ts",
     "dist/isolit.cjs",
-    "dist/isolit.mjs"
+    "dist/isolit.mjs",
+    "dist/isolit.min.js"
   ],
   "keywords": [],
   "author": "visj",
   "license": "MIT",
-  "dependencies": {
+  "devDependencies": {
+    "anod": "git://github.com/visj/anod.git"
+  },
+  "peerDependencies": {
     "anod": "git://github.com/visj/anod.git"
   }
 }
