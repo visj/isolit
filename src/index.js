@@ -121,12 +121,53 @@ var _ = void 0,
 	video = factory('video'),
 	wbr = factory('wbr');
 
+/**
+ * 
+ * @param {string|Attribute<string>} data 
+ * @returns {VNode}
+ */
+function t(data) {
+	return new VText(data);
+}
+
+/**
+ * 
+ * @param {Attribute<ChildNode>} proc 
+ */
+function $if(proc) {
+	return new VIf(proc);
+}
+
+/**
+ * @template T
+ * @param {Enumerable<T>} list 
+ * @param {function(T,number=): ChildNode} proc 
+ */
+function $for(list, proc) {
+	return new VFor(list, proc);
+}
+
+/**
+ * 
+ * @param {number} code 
+ * @param {ChildNode} childNodes 
+ */
+function $event(code, childNodes) {
+	return new VEvent(code, childNodes);
+}
+
 //#endregion
 
 //#region 2. Type definitions
 
 /**
  * @typedef {boolean|number|string|null|undefined|symbol} Primitive
+ */
+
+/**
+ * @typedef {Object} VNode
+ * @property {number} flag
+ * @property {Node} node
  */
 
 /**
@@ -139,47 +180,52 @@ var _ = void 0,
  */
 
 /**
- * @typedef {Object} VNode
- * @property {number} flag
- * @property {Node|Node[]} node
- * @property {VNode=} next
- * @property {VNode[]=} childNodes
+ * @typedef {Array<VNode>} VArray
  */
 
 /**
- * @typedef {Primitive|VElement} OpNode
- */
-
-/**
- * @typedef {Array<Op>} OpArray
- */
-
-/**
- * @typedef {OpNode|OpArray} Op
+ * @typedef {VNode|VArray} ChildNode
  */
 
 //#endregion
 
 /**
+ * @const
+ * @enum {number}
+ */
+var VFlag = {
+	Text: 1,
+	Element: 2,
+	Event: 4,
+	If: 8,
+	For: 16,
+}
+
+/**
  * 
- * @param {Op} op 
+ * @param {ChildNode} cnode 
  * @param {HTMLElement} parent 
  */
- function render(op, parent) {
-	var i, ln, 
-		type = typeof op;
-	if (op == null || type === 'boolean') {
-	} else if (type === 'string' || type === 'number' || type === 'symbol') {
-		parent.appendChild(document.createTextNode(op));
-	} else if (type === 'object') {
-		if (op instanceof VElement) {
-			renderElement(op, parent);
-		} else if (Array.isArray(op)) {
-			for (i = 0, ln = op.length; i < ln; i++) {
-				render(op[i], parent);
-			}
-		} else if (op instanceof Enumerable) {
-
+ function render(cnode, parent) {
+	var i, ln,
+		flag = cnode.flag;
+	if (Array.isArray(cnode)) {
+		for (i = 0, ln = cnode.length; i < ln; i++) {
+			render(cnode[i], parent);
+		}
+	} else {
+		if (flag & VFlag.Text) {
+			renderText(cnode);
+			parent.appendChild(cnode.node);
+		} else if (flag & VFlag.Element) {
+			renderElement(cnode);
+			parent.appendChild(cnode.node);
+		} else if (flag & VFlag.Event) {
+	
+		} else if (flag & VFlag.If) {
+	
+		} else if (flag & VFlag.For) {
+	
 		}
 	}
 }
@@ -188,17 +234,64 @@ var _ = void 0,
 //#region 3. Object implementations
 
 /**
- * 
+ * @constructor
+ * @param {string|Attribute<string>} data 
+ */
+function VText(data) {
+	this.flag = VFlag.Text;
+	this.node = null;
+	this.data = data;
+}
+
+/**
+ * @constructor
  * @param {string} tagName 
  * @param {Attribute<string>} className 
- * @param {*} attributes 
- * @param {*} childNodes 
+ * @param {GlobalAttributes} attributes 
+ * @param {ChildNode} childNodes 
  */
 function VElement(tagName, className, attributes, childNodes) {
+	this.flag = VFlag.Element;
+	this.node = null;
 	this.tagName = tagName;
 	this.className = className;
 	this.attributes = attributes;
-	this.childOps = childNodes;
+	this.childNodes = childNodes;
+}
+
+/**
+ * @constructor
+ * @param {Attribute<ChildNode>} proc 
+ */
+function VIf(proc) {
+	this.flag = VFlag.If;
+	this.node = null;
+	this.proc = proc;
+}
+
+/**
+ * @template T
+ * @constructor
+ * @param {Enumerable<T>} list 
+ * @param {function(T,number=): ChildNode} proc 
+ */
+function VFor(list, proc) {
+	this.flag = VFlag.For;
+	this.node = null;
+	this.proc = proc;
+	this.list = list;
+}
+
+/**
+ * @constructor
+ * @param {number} code 
+ * @param {ChildNode} childNodes 
+ */
+function VEvent(code, childNodes) {
+	this.flag = VFlag.Event;
+	this.node = null;
+	this.code = code;
+	this.childNodes = childNodes;
 }
 
 //#endregion
@@ -211,22 +304,38 @@ function VElement(tagName, className, attributes, childNodes) {
  * @returns {function(Attribute<string>,GlobalAttributes,Op): VNode}
  */
 function factory(tagName) {
-	return function (className, attributes, childOps) {
-		return new VElement(tagName, className, attributes, childOps);
+	return function (className, attributes, childNodes) {
+		return new VElement(tagName, className, attributes, childNodes);
 	}
 }
 
 /**
- * @param {VElement} op 
- * @param {HTMLElement} parent
- * @returns {HTMLElement}
+ * 
+ * @param {VText} vnode 
  */
-function renderElement(op, parent) {
+function renderText(vnode) {
+	var data = vnode.data,
+		node = document.createTextNode('');
+	if (typeof data === 'function') {
+		fn(function() {
+			node.data = data();
+		});
+	} else {
+		node.data = data;
+	}
+	vnode.node = node;
+	vnode.data = null;
+}
+
+/**
+ * @param {VElement} vnode 
+ */
+function renderElement(vnode) {
 	var key, val,
-		className = op.className, 
-		attributes = op.attributes, 
-		op = op.childOps,
-		element = document.createElement(op.tagName);
+		className = vnode.className, 
+		attributes = vnode.attributes, 
+		childNodes = vnode.childNodes,
+		element = document.createElement(vnode.tagName);
 	if (className != null) {
 		if (typeof className === 'function') {
 			fn(function() {
@@ -239,33 +348,35 @@ function renderElement(op, parent) {
 	if (attributes != null) {
 		for (key in attributes) {
 			val = attributes[key];
-			if (key.charCodeAt(0) === 111 && key.charCodeAt(1) === 110) {
-				element[key] = val;
-			} else if (typeof val === 'function') {
-				fn(function() {
-					var v = val();
+			if (typeof val === 'function') {
+				fn(function(attr) {
+					var v = attr();
 					if (v == null || v === false) {
 						delete element[key];
 					} else {
 						element[key] = v;
 					}
-				});
+					return attr;
+				}, val);
 			} else {
 				element[key] = val;
 			}
 		}
 	}
-	if (op != null) {
-		render(element, op);
+	if (childNodes != null) {
+		render(childNodes, element);
 	}
-	parent.appendChild(element);
-	return element;
+	vnode.node = element;
+	vnode.tagName = null;
+	vnode.className = null;
+	vnode.attributes = null;
+	vnode.childNodes = null;
 }
 
 //#endregion
 
 module.exports = {
-	_, render,
+	render, _, t, $if, $for, $event,
 	a, abbr, address, area, article, aside,
 	audio, b, base, bdi, bdo, blockquote,
 	body, br, button, canvas, caption,
@@ -284,3 +395,4 @@ module.exports = {
 	template, textarea, tfoot, th, thead, time,
 	title, tr, track, u, ul, video, wbr
 };
+

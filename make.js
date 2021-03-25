@@ -70,7 +70,7 @@ String.prototype.trimEmptyLines = function () {
 }
 
 String.prototype.replaceExports = function (callback) {
-	return this.replace(/module\.exports\s+=\s+{\s+([\w\:\s\,]+)\s+\}\;/g, callback)
+	return this.replace(/module\.exports\s+=\s+{\s+([\$\w\:\s\,]+)\s+\}\;/g, callback)
 }
 
 String.prototype.replaceImports = function(callback) {

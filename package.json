@@ -1,13 +1,18 @@
 {
   "name": "isolit",
-  "version": "1.0.0",
+  "version": "0.0.1",
   "description": "",
-  "main": "index.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
+  "main": "dist/isolit.cjs",
+  "module": "dist/isolit.mjs",
+  "types": "lib.d.ts",
+  "scripts": {},
+  "files": [
+    "lib.d.ts",
+    "dist/isolit.cjs",
+    "dist/isolit.mjs"
+  ],
   "keywords": [],
-  "author": "",
+  "author": "visj",
   "license": "MIT",
   "dependencies": {
     "anod": "git://github.com/visj/anod.git"
